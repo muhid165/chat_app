@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHAT APP</title>
+    <link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+    <h1>SOCKET.IO AUTHENTHICATED CHATTING !!!!!!</h1>
+
+    <div id="login">
+        <h2>Login</h2>
+        <input type="text" id="email" placeholder="email">
+        <input type="password" id="password" placeholder="Password">
+        <button id="loginBtn">Login</button>
+    </div>
+    
+    
+    <ul id="messages"></ul>
+
+    <form id="form" action="" style="display:none;">
+        <input type="text" id="messageInput" placeholder="enter text">
+        <button id="sendBtn"> Send</button>
+    </form>
+
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket;
+        let token;
+
+
+        document.getElementById('loginBtn').addEventListener('click',async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // sending login request to the server!!!!
+
+            const res = await fetch('http://localhost:9000/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await res.json();
+            token = data.token;
+            
+            if(token){
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('form').style.display = 'flex';
+
+
+                // connecting to the socket.io server with the jwt token
+
+                socket = io('http://localhost:9000',{
+                    auth: {
+                        token: token
+                    }
+                });
+
+
+                const allMessages = document.getElementById("messages");
+                const messageInput = document.getElementById('messageInput');  // input
+                const form = document.getElementById('form');             // form 
+
+
+                function appendMessage(message){
+                    const item = document.createElement('li');
+                    if(typeof message === 'string'){
+                        item.textContent = message;
+                        allMessages.appendChild(item);
+                    }else{
+
+                        item.textContent = `${message.email}: ${message.message}`;
+                        allMessages.appendChild(item);
+                    }
+
+
+                window.scrollTo(0, document.body.scrollHeight);
+                }
+            
+            
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    if (messageInput.value) {
+                        socket.emit('chat message',messageInput.value)
+                        messageInput.value = '';
+                    }
+                });
+
+                socket.on('chat message',(message) => {
+                    appendMessage(message);
+                });
+                
+            }
+
+
+
+        })
+        
+        
+    </script>
+    
+</body>
+</html>
